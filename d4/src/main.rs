@@ -2,38 +2,45 @@ extern crate regex;
 
 use regex::Regex;
 use std::io::{self, Read};
-use std::cmp::Ordering;
 use std::collections::btree_map::BTreeMap;
 use std::str::FromStr;
 
-struct CharNum(char, u32);
-
-impl PartialEq for CharNum {
-    fn eq(&self, other: &CharNum) -> bool {
-        self.0 == other.0 && self.1 == other.1
-    }
+fn parse(line: &str) -> (&str, u32, &str) {
+    let re = Regex::new(r"((?:[a-z]+-)+)([0-9]+)\[([a-z]{5})\]").unwrap();
+    let cap = re.captures(line).unwrap();
+    (cap.at(1).unwrap(), u32::from_str(cap.at(2).unwrap()).unwrap(), cap.at(3).unwrap())
 }
 
-impl Eq for CharNum {}
-
-impl PartialOrd for CharNum {
-    fn partial_cmp(&self, other: &CharNum) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for CharNum {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if self.1 != other.1 {
-            self.1.cmp(&other.1)
+fn checksum(code: &str) -> String {
+    let mut list = String::from(code)
+        .chars()
+        .filter(|&c| c != '-')
+        .collect::<Vec<_>>();
+    let mut count = BTreeMap::new();
+    list.sort();
+    let _ = list.into_iter()
+        .map(|c|{
+            *count.entry(c).or_insert(0) += 1;
+        }).collect::<Vec<_>>();
+    let mut list_char_num = count
+        .into_iter()
+        .collect::<Vec<(char, u32)>>();
+    list_char_num.sort_by(|a, b| {
+        if b.1 != a.1 {
+            b.1.cmp(&a.1)
         } else {
-            //self.0.cmp(&other.0)
-            other.0.cmp(&self.0)
+            //b.0.cmp(&a.0)
+            a.0.cmp(&b.0)
         }
+    });
+    let mut ret = String::new();
+    for i in 0..5 {
+        ret.push(list_char_num[i].0);
     }
+    ret
 }
 
-fn shift_cipher(line: &mut str, id: u32) {
+fn shift_cipher(line: &mut str, id: u32) -> Option<String> {
     let alphabet_lower: &str = "abcdefghijklmnopqrstuvwxyz";
     let mut res = String::new();
     for c in line.chars() {
@@ -45,38 +52,22 @@ fn shift_cipher(line: &mut str, id: u32) {
             res.push(alphabet_lower.clone().chars().nth(new_pos).unwrap());
         }
     }
-    println!("{} - {}", res, id);
+    if res.contains("north") {
+        Some(res)
+    } else {
+        None
+    }
 }
 
 fn process(line: &str) -> u32 {
-    let re = Regex::new(r"((?:[a-z]+-)+)([0-9]+)\[([a-z]{5})\]").unwrap();
-    let cap = re.captures(line).unwrap();
-    let name = cap.at(1).unwrap();
-    let mut shift = String::from(name);
-    let id = cap.at(2).unwrap();
-    let checksum = cap.at(3).unwrap();
-    //println!("{} - {} - {}", name, id, checksum);
-    let mut list: Vec<char> = String::from(name).chars().filter(|&c| c != '-').collect();
-    list.sort();
-    //println!("{:?} - {} - {}", list, id, checksum);
-    let mut count = BTreeMap::new();
-    for c in list {
-        *count.entry(c).or_insert(0) += 1;
-    }
-    let mut list2 = Vec::new();
-    for (char, count) in &count {
-        list2.push(CharNum(*char, *count as u32));
-    }
-    // reverse sorting
-    list2.sort_by(|a, b| b.cmp(a));
-    let mut check = String::new();
-    for i in 0..5 {
-        check.push(list2[i].0);
-    }
-    //println!("{} - {} - {}", check, id, checksum);
-    if check == checksum {
-        let id = u32::from_str(id).unwrap();
-        shift_cipher(&mut shift, id);
+    let (code, id, sum) = parse(line);
+    let mut shift = String::from(code);
+    let local_sum = checksum(code);
+    if local_sum == sum {
+        match shift_cipher(&mut shift, id) {
+            Some(s) => println!("{} - {}", s, id),
+            None => {}
+        }
         return id;
     } else {
         return 0;
@@ -86,12 +77,6 @@ fn process(line: &str) -> u32 {
 fn main() {
     let mut buffer = String::new();
     io::stdin().read_to_string(&mut buffer).unwrap();
-    // for line in buffer.lines() {
-    //     println!("{}, {}", line, process(line));
-    // }
     let sum: u32 = buffer.lines().map(process).sum();
     println!("Sum is: {}", sum);
-
-    assert_eq!(CharNum('a', 5).cmp(&CharNum('a',6)), Ordering::Less);
-    assert_eq!(CharNum('x', 7).cmp(&CharNum('a',4)), Ordering::Greater);
 }
