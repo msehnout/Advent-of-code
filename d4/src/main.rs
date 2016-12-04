@@ -19,17 +19,16 @@ fn checksum(code: &str) -> String {
     let mut count = BTreeMap::new();
     list.sort();
     let _ = list.into_iter()
-        .map(|c|{
+        .map(|c| {
             *count.entry(c).or_insert(0) += 1;
-        }).collect::<Vec<_>>();
-    let mut list_char_num = count
-        .into_iter()
+        })
+        .collect::<Vec<_>>();
+    let mut list_char_num = count.into_iter()
         .collect::<Vec<(char, u32)>>();
     list_char_num.sort_by(|a, b| {
         if b.1 != a.1 {
             b.1.cmp(&a.1)
         } else {
-            //b.0.cmp(&a.0)
             a.0.cmp(&b.0)
         }
     });
@@ -41,15 +40,15 @@ fn checksum(code: &str) -> String {
 }
 
 fn shift_cipher(line: &mut str, id: u32) -> Option<String> {
-    let alphabet_lower: &str = "abcdefghijklmnopqrstuvwxyz";
+    let alphabet_lower = "abcdefghijklmnopqrstuvwxyz".chars().collect::<Vec<_>>();
     let mut res = String::new();
     for c in line.chars() {
         if c == '-' {
             res.push(' ');
         } else {
-            let pos: usize = alphabet_lower.chars().position(|b| c == b).unwrap();
+            let pos: usize = (&alphabet_lower).into_iter().position(|b| c == *b).unwrap();
             let new_pos: usize = (pos + id as usize) % 26;
-            res.push(alphabet_lower.clone().chars().nth(new_pos).unwrap());
+            res.push(alphabet_lower[new_pos]);
         }
     }
     if res.contains("north") {
