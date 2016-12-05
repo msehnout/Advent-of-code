@@ -1,0 +1,7 @@
+[package]
+name = "d5"
+version = "0.1.0"
+authors = ["Sehny <sehnoutka.martin@gmail.com>"]
+
+[dependencies]
+md5 = "0.2.1"
