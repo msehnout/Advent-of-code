@@ -14,7 +14,7 @@ fn get_message(input: &[&str]) -> String {
         let list_char_num = (&counter[i])
             .into_iter()
             .collect::<Vec<(&char, &usize)>>();
-        let (c, _): (&char, &usize) = *list_char_num.iter().max_by_key(|x| x.1).unwrap();
+        let (c, _): (&char, &usize) = *list_char_num.iter().min_by_key(|x| x.1).unwrap();
         msg.push(*c);
     }
     msg
